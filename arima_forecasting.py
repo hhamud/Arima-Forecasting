@@ -39,7 +39,6 @@ def scatterchart():
 #plot autocorrelation plot, finding the AR componenet
 def auto_corr():
     df1 = df['price_sterling']
-    print(df1.dtypes)
     autocorrelation_plot(df1)
     plt.show()
 
@@ -74,7 +73,7 @@ def ARIM_pre():
     history = [x for x in train]
     predictions = list()
     for k in range(len(test)):
-        model = ARIMA(history, order=(5,2,1))
+        model = ARIMA(history, order=(5,2,2))
         model_fit = model.fit(disp=0)
         output = model_fit.forecast()
         yhat = output[0]
@@ -84,15 +83,38 @@ def ARIM_pre():
         print('predicted=%f, expected=%f' % (yhat, obs))
     error = mean_squared_error(test, predictions)
     print('TEST MSE: %.3f' % error)
-    std_err = sem(predictions)
+    d = dict(data=X, forecast=predictions)
+    results_table = pd.DataFrame(dict([ (k, pd.Series(v)) for k,v in d.items()]))
+    results_table.to_csv(r'arima_forecasting.csv')
+
+
+def chart_creation():
+    df1 = pd.read_csv(r'arima_forecasting.csv')
+    df1['predictions'] = df1['forecast'].str.strip('[]').astype(float)
+    df1['predictions'] = df1['predictions'].shift(200)
+    df1.fillna({x:0 for x in ['data', 'predictions']}, inplace=True)
+    test = df1['data']
+    print(df1)
+    std_err = df1['predictions'].sem()
+    predictions = df1['predictions'][200:].values
     confidence = 0.95
-    n = len(predictions)
+    n = len(df1['predictions'])
     h = std_err * t.ppf((1 + confidence) / 2, n - 1)
     g = np.arange(len(predictions))
-    plt.plot(test)
-    plt.plot(predictions, color='red')
-    plt.fill_between(g, (predictions - h), (predictions + h), alpha=0.25)
+    plt.plot(df1['predictions'][200:], color='red')
+    plt.plot(test, color='blue')
+    plt.fill_between(g+200 ,predictions + h, predictions - h, alpha=0.25, interpolate=True, color='red')
     plt.show()
+    
+    
+    
 
 
-ARIM_pre()
+
+
+chart_creation()
+
+   
+
+    
+
