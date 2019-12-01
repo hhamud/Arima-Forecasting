@@ -9,7 +9,8 @@ from statsmodels.graphics.tsaplots import plot_acf
 from sklearn.metrics import mean_squared_error
 from scipy.stats import sem, t
 from scipy import mean
-
+from statsmodels.tsa.stattools import adfuller
+from statsmodels.tsa.arima_process import arma_generate_sample
 
 
 df = pd.read_csv(r'C:\Users\Hamza\Documents\PycharmProjects\Research\clean_n2ex_2016_hourly.csv')
@@ -34,26 +35,47 @@ def scatterchart():
     plt.setp(l.get_xticklabels(), visible=True)
     plt.show()
 
+
+
+
+def stat_test():
+    df1 = df.loc[:302, 'price_sterling']
+    X = df1.values
+    result = adfuller(X)
+    print('ADF Statistic: %f' % result[0])
+    print('p-value: %f' % result[1])
+    print('Critical Values:')
+    for key, value in result[4].items():
+        print('\t%s: %.3f' % (key, value))
+
+
+
+
 #start prepping data for linear regression analysis or for ARIMA comparison
 
 #plot autocorrelation plot, finding the AR componenet
 def auto_corr():
-    df1 = df['price_sterling']
-    autocorrelation_plot(df1)
+    corr_data = df.loc[:302, 'price_sterling'].diff()
+    corr_data = corr_data.replace(np.nan, 0)
+    print(corr_data)
+    autocorrelation_plot(corr_data)
     plt.show()
 
 
 #shows the MA component
 def pacf():
-    df1 = df['price_sterling']
-    plot_acf(df1)
+    pacf_data = df.loc[:302, 'price_sterling'].diff()
+    pacf_data = pacf_data.replace(np.nan, 0)
+    plot_acf(pacf_data)
     plt.show()
+
+
 
 #fit model
 #order, lag value of 5 for autoregression, difference order of 1 to make time series stationary, moving avergae of 0
 def run_arim():
-    df1 = df['price_sterling']
-    model = ARIMA(df1, order=(5,1,4))
+    df1 = df.loc[ :300, 'price_sterling']
+    model = ARIMA(df1, order=(2,1,2))
     model_fit = model.fit(disp=0)
     print(model_fit.summary())
     residuals = pd.DataFrame(model_fit.resid)
@@ -64,6 +86,18 @@ def run_arim():
     print(residuals.describe())
 #plot residual errors
 
+
+
+def compute_arima_para():
+    import pmdarima as pm
+    df1 = df['price_sterling']
+    df2 = df1.loc[:300]
+    X = df2.values
+    arima = pm.auto_arima(X, start_P=1, max_P=6, start_q=1, max_q=6,  information_criterion='aic')
+    print(arima)
+    
+
+
 def ARIM_pre():
     df1 = df['price_sterling']
     df2 = df1.loc[:300]
@@ -71,50 +105,52 @@ def ARIM_pre():
     size = int(len(X) * 0.66)
     train, test = X[0:size] , X[size:len(X)]
     history = [x for x in train]
-    predictions = list()
+    predictions = []
+    predictionslower = []
+    predictionsupper = []
     for k in range(len(test)):
-        model = ARIMA(history, order=(5,2,2))
+        model = ARIMA(history, order=(1,1,1))
         model_fit = model.fit(disp=0)
-        output = model_fit.forecast()
-        yhat = output[0]
+        forecast, stderr, conf_int = model_fit.forecast()
+        yhat = forecast[0]
+        yhatlower = conf_int[0][0]
+        yhatupper = conf_int[0][1]
         predictions.append(yhat)
+        predictionslower.append(yhatlower)
+        predictionsupper.append(yhatupper)
         obs = test[k]
         history.append(obs)
         print('predicted=%f, expected=%f' % (yhat, obs))
+        print('95 prediction interval: %f to %f' % (yhatlower, yhatupper))
     error = mean_squared_error(test, predictions)
     print('TEST MSE: %.3f' % error)
-    d = dict(data=X, forecast=predictions)
+    d = dict(data=X, forecast=predictions, lower=predictionslower, upper=predictionsupper)
     results_table = pd.DataFrame(dict([ (k, pd.Series(v)) for k,v in d.items()]))
     results_table.to_csv(r'arima_forecasting.csv')
 
 
 def chart_creation():
     df1 = pd.read_csv(r'arima_forecasting.csv')
-    df1['predictions'] = df1['forecast'].str.strip('[]').astype(float)
-    df1['predictions'] = df1['predictions'].shift(200)
-    df1.fillna({x:0 for x in ['data', 'predictions']}, inplace=True)
+    df1['forecast'] = df1['forecast'].shift(200)
+    df1['lower'] = df1['lower'].shift(200)
+    df1['upper'] = df1['upper'].shift(200)
+    df1['date_time'] = df['date_time']
+    df1.fillna({x:0 for x in ['data', 'forecast', 'lower', 'upper']}, inplace=True)
+    print(df1.tail())
     test = df1['data']
-    print(df1)
-    std_err = df1['predictions'].sem()
-    predictions = df1['predictions'][200:].values
-    confidence = 0.95
-    n = len(df1['predictions'])
-    h = std_err * t.ppf((1 + confidence) / 2, n - 1)
+    std_err = df1['forecast'].sem()
+    predictions = df1['forecast'][200:].values
+    lower = df1['lower'][200:].values
+    upper = df1['upper'][200:].values
     g = np.arange(len(predictions))
-    plt.plot(df1['predictions'][200:], color='red')
-    plt.plot(test, color='blue')
-    plt.fill_between(g+200 ,predictions + h, predictions - h, alpha=0.25, interpolate=True, color='red')
+    plt.plot(df1['forecast'][200:], color='red', label='Arima Forecast')
+    plt.plot(test, color='blue', label='Real Data')
+    plt.fill_between(g+200 ,lower, upper, alpha=0.25, interpolate=True, color='red')
+    plt.xticks(df1.index.values, df1['date_time'], rotation=45, ha='right')
+    plt.xlabel('Time (h)')
+    plt.ylabel('£ / Mwh')
+    plt.title('Day Ahead Electricity Pricing')
+    plt.legend(loc='upper left')
     plt.show()
-    
-    
-    
-
-
-
-
-chart_creation()
-
-   
-
     
 
