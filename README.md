@@ -5,3 +5,9 @@ Using ARIMA Forecasting to predict the day ahead electricity market. The data is
 ![Day Ahead Electricity Arima Forecasting Chart](https://github.com/hhamud/Arima-Forecasting/blob/master/chart.png)
 
 
+![Autocorrelation Chart of the differenced time series](https://github.com/hhamud/Arima-Forecasting/blob/master/autocorrchart.png)
+
+![Partial Autocorrelation chart of the differenced time series](https://github.com/hhamud/Arima-Forecasting/blob/master/partialcorrchart.png)
+
+
+
