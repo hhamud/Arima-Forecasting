@@ -29,7 +29,7 @@ df['season'] = ['winter' if i < 3 or i == 12 else 'Autumn' if i >= 9 and i <= 11
 def scatterchart():
     xticklabels = df['date_time']
     l = sns.scatterplot(data=df, x='date_time', y='price_sterling')
-    l.set(xlim=(0,24),ylim=(0,100))
+    l.set(xlim=(0,300),ylim=(0,200))
     l.set_xticklabels(xticklabels, rotation=45, ha='right')
     plt.tight_layout
     plt.setp(l.get_xticklabels(), visible=True)
@@ -51,9 +51,6 @@ def stat_test():
 
 
 
-#start prepping data for linear regression analysis or for ARIMA comparison
-
-#plot autocorrelation plot, finding the AR componenet
 def auto_corr():
     corr_data = df.loc[:302, 'price_sterling'].diff()
     corr_data = corr_data.replace(np.nan, 0)
@@ -62,7 +59,7 @@ def auto_corr():
     plt.show()
 
 
-#shows the MA component
+
 def pacf():
     pacf_data = df.loc[:302, 'price_sterling'].diff()
     pacf_data = pacf_data.replace(np.nan, 0)
@@ -71,8 +68,7 @@ def pacf():
 
 
 
-#fit model
-#order, lag value of 5 for autoregression, difference order of 1 to make time series stationary, moving avergae of 0
+
 def run_arim():
     df1 = df.loc[ :300, 'price_sterling']
     model = ARIMA(df1, order=(2,1,2))
@@ -84,7 +80,7 @@ def run_arim():
     residuals.plot(kind='kde')
     plt.show()
     print(residuals.describe())
-#plot residual errors
+
 
 
 
@@ -136,7 +132,6 @@ def chart_creation():
     df1['upper'] = df1['upper'].shift(200)
     df1['date_time'] = df['date_time']
     df1.fillna({x:0 for x in ['data', 'forecast', 'lower', 'upper']}, inplace=True)
-    print(df1.tail())
     test = df1['data']
     std_err = df1['forecast'].sem()
     predictions = df1['forecast'][200:].values
