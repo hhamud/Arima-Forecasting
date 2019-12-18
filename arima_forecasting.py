@@ -113,6 +113,7 @@ def ARIM_pre():
     error = mean_squared_error(test, predictions)
     RMSE = np.sqrt(error)
     print('TEST MSE: %.3f' % error)
+    print('RMSE: %.3f' % (RMSE))
     d = dict(data=X, forecast=predictions, lower=predictionslower, upper=predictionsupper)
     results_table = pd.DataFrame(dict([ (k, pd.Series(v)) for k,v in d.items()]))
     results_table.to_csv(r'arima_forecasting.csv')
@@ -171,4 +172,3 @@ def AIC_iteration():
     results_table.to_csv(r'AIC.csv')
 
 
-chart_creation()
