@@ -41,8 +41,9 @@ def scatterchart():
 
 
 def stat_test():
-    df1 = df.loc[:302, 'price_sterling']
+    df1 = df.loc[:200, 'price_sterling']
     X = df1.values
+    print(X)
     result = adfuller(X)
     print('ADF Statistic: %f' % result[0])
     print('p-value: %f' % result[1])
@@ -54,7 +55,7 @@ def stat_test():
 
 
 def auto_corr():
-    corr_data = df.loc[:302, 'price_sterling'].diff()
+    corr_data = df.loc[:200, 'price_sterling']
     corr_data = corr_data.replace(np.nan, 0)
     print(corr_data)
     autocorrelation_plot(corr_data)
@@ -63,7 +64,7 @@ def auto_corr():
 
 
 def pacf():
-    pacf_data = df.loc[:302, 'price_sterling'].diff()
+    pacf_data = df.loc[:200, 'price_sterling']
     pacf_data = pacf_data.replace(np.nan, 0)
     plot_acf(pacf_data)
     plt.show()
@@ -72,8 +73,8 @@ def pacf():
 
 
 def run_arim():
-    df1 = df.loc[ :300, 'price_sterling']
-    model = ARIMA(df1, order=(2,1,2))
+    df1 = df.loc[ :200, 'price_sterling']
+    model = ARIMA(df1, order=(2,1,5))
     model_fit = model.fit(disp=0)
     print(model_fit.summary())
     residuals = pd.DataFrame(model_fit.resid)
@@ -84,19 +85,8 @@ def run_arim():
     print(residuals.describe())
 
 
-
-
-def compute_arima_para():
-    import pmdarima as pm
-    df1 = df['price_sterling']
-    df2 = df1.loc[:300]
-    X = df2.values
-    arima = pm.auto_arima(X, start_P=1, max_P=6, start_q=1, max_q=6,  information_criterion='aic')
-    print(arima)
-    
-
-
 def ARIM_pre():
+    warnings.filterwarnings("ignore")
     df1 = df['price_sterling']
     df2 = df1.loc[:300]
     X = df2.values
@@ -107,7 +97,7 @@ def ARIM_pre():
     predictionslower = []
     predictionsupper = []
     for k in range(len(test)):
-        model = ARIMA(history, order=(1,1,0))
+        model = ARIMA(history, order=(4,0,3))
         model_fit = model.fit(disp=0)
         forecast, stderr, conf_int = model_fit.forecast()
         yhat = forecast[0]
@@ -121,6 +111,7 @@ def ARIM_pre():
         print('predicted=%f, expected=%f' % (yhat, obs))
         print('95 prediction interval: %f to %f' % (yhatlower, yhatupper))
     error = mean_squared_error(test, predictions)
+    RMSE = np.sqrt(error)
     print('TEST MSE: %.3f' % error)
     d = dict(data=X, forecast=predictions, lower=predictionslower, upper=predictionsupper)
     results_table = pd.DataFrame(dict([ (k, pd.Series(v)) for k,v in d.items()]))
@@ -162,20 +153,22 @@ def AIC_iteration():
     size = int(len(X) * 0.66)
     train, test = X[0:size] , X[size:len(X)]
     history = [x for x in train]
-    p = d = q = range(0,8)
+    p = d = q = range(0,6)
     pdq = list(itertools.product(p,d,q))
     aic_results = []
+    parameter = []
     for param in pdq:
         try:
             model = ARIMA(history, order=param)
             results = model.fit(disp=0)
             print('ARIMA{} - AIC:{}'.format(param, results.aic))
             aic_results.append(results.aic)
+            parameter.append(param)
         except:
             continue
-    d = dict(ARIMA=pdq, AIC=aic_results)
+    d = dict(ARIMA=parameter, AIC=aic_results)
     results_table = pd.DataFrame(dict([ (k, pd.Series(v)) for k,v in d.items()]))
     results_table.to_csv(r'AIC.csv')
 
-ARIM_pre()
+
 chart_creation()
