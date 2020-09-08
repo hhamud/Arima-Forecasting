@@ -1,8 +1,7 @@
 # Using Arima to predict the Day Ahead Electricity Market
 
 
-Link to the article for an explanation of the application of this statistical technique on a case study.
-* https://towardsdatascience.com/can-we-predict-the-day-ahead-electricity-market-f532137fd5be
+
 
 
 ## What did I learn from this:
